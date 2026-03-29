@@ -6,7 +6,11 @@
  */
 
 import { JSDOM, VirtualConsole } from 'jsdom';
-import axe from 'axe-core';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const axeModule = require('axe-core');
+// Handle both CJS and ESM default export shapes
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const axe: { source: string } = (axeModule.default ?? axeModule) as any;
 
 export interface ScanIssue {
   id: string;

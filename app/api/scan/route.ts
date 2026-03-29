@@ -69,9 +69,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    console.error('Scan error:', err);
+    // Return verbose error in dev, generic message in prod
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('Scan error:', detail);
     return NextResponse.json(
-      { error: 'Scan failed. Please try again in a moment.' },
+      { error: 'Scan failed. Please try again in a moment.', detail },
       { status: 500 }
     );
   }
