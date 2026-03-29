@@ -3,7 +3,8 @@ import { scanUrl } from '@/lib/scanner';
 import { generateSummary } from '@/lib/ai-fixes';
 import { v4 as uuidv4 } from 'uuid';
 
-// Vercel: allow up to 60 seconds for scan (needs Pro plan or higher for >10s)
+// Force Node.js runtime — jsdom is not compatible with Edge/Deno runtime
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
