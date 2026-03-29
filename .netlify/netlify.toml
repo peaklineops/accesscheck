@@ -1,0 +1,33 @@
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[[plugins]]
+origin = "config"
+package = "@netlify/plugin-nextjs"
+
+[plugins.inputs]
+
+[build]
+publish = "/Users/david.yocom/Desktop/Moneymaker/ventures/accessibility-tool/app/.next"
+publishOrigin = "config"
+commandOrigin = "config"
+base = "/Users/david.yocom/Desktop/Moneymaker/ventures/accessibility-tool/app"
+command = "npm run build"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
