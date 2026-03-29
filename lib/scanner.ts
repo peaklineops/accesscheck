@@ -79,14 +79,12 @@ export async function scanUrl(url: string): Promise<ScanResult> {
   const { document } = window;
   const pageTitle = document.title || '';
 
-  // Inject axe-core into the jsdom context
-  const axeScript = window.document.createElement('script');
-  axeScript.textContent = axe.source;
-  window.document.head.appendChild(axeScript);
-
-  // Run axe-core
+  // Inject axe-core into the jsdom context via eval (required for the axe IIFE to bind to this window)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const axeWindow = window as any;
+  axeWindow.eval(axe.source);
+
+  // Run axe-core
   const axeResults = await axeWindow.axe.run(document, {
     runOnly: {
       type: 'tag',
