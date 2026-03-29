@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // Known user errors
     if (message.includes('net::ERR_') || message.includes('Navigation timeout')) {
       return NextResponse.json(
-        { error: `Could not reach that URL. Make sure the site is publicly accessible.` },
+        { error: `Could not reach that URL. Make sure the site is publicly accessible.`, detail: message },
         { status: 422 }
       );
     }
