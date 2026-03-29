@@ -304,13 +304,18 @@ export async function scanUrl(url: string): Promise<ScanResult> {
     throw new Error('Only HTTP and HTTPS URLs are supported.');
   }
 
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'AccessCheck/1.0 (Accessibility Audit Bot; +https://accesscheck-app.netlify.app)',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-    signal: AbortSignal.timeout(15000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        'User-Agent': 'AccessCheck/1.0 (Accessibility Audit Bot; +https://accesscheck-app.netlify.app)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+  } catch (fetchErr) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    throw new Error(`net::ERR_FETCH: ${msg}`);
+  }
 
   if (!res.ok) {
     throw new Error(`net::ERR_HTTP_${res.status} Could not reach that URL.`);
