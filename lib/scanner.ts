@@ -4,6 +4,8 @@
  * regex patterns, and checks for WCAG 2.1 violations.
  * No browser binary, no DOM emulator — works on any serverless platform.
  */
+import { request as httpsRequest } from 'https';
+import { request as httpRequest } from 'http';
 
 export interface ScanIssue {
   id: string;
@@ -298,30 +300,50 @@ function checkMetaViewport(html: string): ScanIssue[] {
 
 // ── Main scanner ──────────────────────────────────────────────────────────────
 
+/** Fetch HTML using Node.js built-in https/http module (bypasses fetch polyfills) */
+function fetchHtml(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const requester = parsedUrl.protocol === 'https:' ? httpsRequest : httpRequest;
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'AccessCheck/1.0 (Accessibility Audit Bot)',
+        'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      timeout: 15000,
+    };
+
+    const req = requester(options, (res) => {
+      // Follow redirects (up to 3)
+      if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        return fetchHtml(res.headers.location).then(resolve).catch(reject);
+      }
+      if (res.statusCode && res.statusCode >= 400) {
+        return reject(new Error(`net::ERR_HTTP_${res.statusCode}`));
+      }
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+      res.on('error', reject);
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Navigation timeout')); });
+    req.on('error', (err) => reject(new Error(`net::ERR_CONNECTION: ${err.message}`)));
+    req.end();
+  });
+}
+
 export async function scanUrl(url: string): Promise<ScanResult> {
   const parsedUrl = new URL(url);
   if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
     throw new Error('Only HTTP and HTTPS URLs are supported.');
   }
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      headers: {
-        'User-Agent': 'AccessCheck/1.0 (Accessibility Audit Bot; +https://accesscheck-app.netlify.app)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    });
-  } catch (fetchErr) {
-    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-    throw new Error(`net::ERR_FETCH: ${msg}`);
-  }
-
-  if (!res.ok) {
-    throw new Error(`net::ERR_HTTP_${res.status} Could not reach that URL.`);
-  }
-
-  const html = await res.text();
+  const html = await fetchHtml(url);
   const pageTitle = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '')
     .replace(/<[^>]+>/g, '').trim();
 
