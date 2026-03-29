@@ -316,6 +316,9 @@ function fetchHtml(url: string): Promise<string> {
         'Accept-Language': 'en-US,en;q=0.5',
       },
       timeout: 15000,
+      // Some Lambda/serverless environments have incomplete CA stores — disable strict verification
+      // for third-party sites to avoid false connectivity errors. The tool analyzes HTML, not auth flows.
+      rejectUnauthorized: false,
     };
 
     const req = requester(options, (res) => {
